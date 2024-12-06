@@ -4,22 +4,43 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo 'Building the project...'
-                sh './build.sh' // Assuming build.sh handles building
+                script {
+                    if (env.BRANCH_NAME == 'dev') {
+                        echo 'Building for DEV branch'
+                        sh './build.sh'
+                    } else if (env.BRANCH_NAME == 'master') {
+                        echo 'Building for MASTER branch'
+                        sh './build.sh'
+                    }
+                }
             }
         }
-        stage('Test') {
+        stage('Push to Docker Hub') {
             steps {
-                echo 'Running tests...'
-                sh './deploy.sh' // Replace this with your actual test command
+                script {
+                    if (env.BRANCH_NAME == 'dev') {
+                        echo 'Pushing to DEV Docker Hub repository'
+                        sh 'docker push <DockerHubUser>/dev'
+                    } else if (env.BRANCH_NAME == 'master') {
+                        echo 'Pushing to PROD Docker Hub repository'
+                        sh 'docker push <DockerHubUser>/prod'
+                    }
+                }
             }
         }
         stage('Deploy') {
             steps {
-                echo 'Deploying the application...'
-                sh './deploy.sh' // Assuming deploy.sh handles deployment
+                script {
+                    if (env.BRANCH_NAME == 'master') {
+                        echo 'Deploying PROD environment'
+                        sh './deploy.sh'
+                    } else {
+                        echo 'Skipping deployment for DEV branch'
+                    }
+                }
             }
         }
     }
 }
+
 
