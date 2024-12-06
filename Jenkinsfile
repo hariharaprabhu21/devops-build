@@ -31,16 +31,18 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    if (env.BRANCH_NAME == 'master') {
-                        echo 'Deploying PROD environment'
+                    if (env.BRANCH_NAME == 'dev') {
+                        echo 'Deploying for DEV branch'
                         sh './deploy.sh'
-                    } else {
-                        echo 'Skipping deployment for DEV branch'
+                    } else if (env.BRANCH_NAME == 'master') {
+                        echo 'Deploying for PROD environment'
+                        sh './deploy.sh'
                     }
                 }
             }
         }
     }
 }
+
 
 
