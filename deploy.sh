@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Enable debugging to see each command executed
-set -x
+set -x  # Enable debug mode
 
 echo "Starting deployment..."
 
@@ -43,5 +42,6 @@ else
     exit 1
 fi
 
+echo "Deployment finished."
 
 

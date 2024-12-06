@@ -1,48 +1,69 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_IMAGE = 'hariharaprabhu21/react-app:latest'
+        DOCKER_REGISTRY = 'docker.io'
+        BRANCH_NAME = ''
+    }
+
     stages {
+        stage('Checkout') {
+            steps {
+                script {
+                    // Checkout the code from GitHub
+                    checkout scm
+                    // Get the current branch name
+                    BRANCH_NAME = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+                    echo "Checked out branch: ${BRANCH_NAME}"
+                }
+            }
+        }
+
         stage('Build') {
             steps {
                 script {
-                    if (env.BRANCH_NAME == 'dev') {
-                        echo 'Building for DEV branch'
-                        sh './build.sh'
-                    } else if (env.BRANCH_NAME == 'master') {
-                        echo 'Building for MASTER branch'
-                        sh './build.sh'
-                    }
+                    echo "Building Docker image for branch ${BRANCH_NAME}..."
+                    // Ensure you are in the correct directory where the Dockerfile exists
+                    sh 'docker build -t ${DOCKER_IMAGE} .'
                 }
             }
         }
+
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    if (env.BRANCH_NAME == 'dev') {
-                        echo 'Pushing to DEV Docker Hub repository'
-                        sh 'docker push <DockerHubUser>/dev'
-                    } else if (env.BRANCH_NAME == 'master') {
-                        echo 'Pushing to PROD Docker Hub repository'
-                        sh 'docker push <DockerHubUser>/prod'
+                    echo "Pushing Docker image to Docker Hub..."
+                    // Log in to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
+                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
+                        sh 'docker push ${DOCKER_IMAGE}'
                     }
                 }
             }
         }
+
         stage('Deploy') {
             steps {
                 script {
-                    if (env.BRANCH_NAME == 'dev') {
-                        echo 'Deploying for DEV branch'
-                        sh './deploy.sh'
-                    } else if (env.BRANCH_NAME == 'master') {
-                        echo 'Deploying for PROD environment'
-                        sh './deploy.sh'
-                    }
+                    echo "Deploying the application..."
+                    // Run the deploy.sh script
+                    sh './deploy.sh'
                 }
             }
         }
     }
+
+    post {
+        always {
+            echo "Cleaning up Docker images..."
+            // Clean up Docker images after the pipeline
+            sh 'docker rmi ${DOCKER_IMAGE} || true'
+        }
+    }
 }
+
+
 
 
 
